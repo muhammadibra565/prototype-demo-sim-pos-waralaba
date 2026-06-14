@@ -183,7 +183,3 @@ Jika ada pertanyaan atau ingin menambah fitur:
 1. Edit file yang sesuai (HTML/CSS/JS/DB)
 2. Reload browser untuk melihat perubahan
 3. Gunakan DevTools (F12) untuk debugging
-
----
-
-**Dibuat dengan ❤️ untuk Sistem POS Indomaret**
