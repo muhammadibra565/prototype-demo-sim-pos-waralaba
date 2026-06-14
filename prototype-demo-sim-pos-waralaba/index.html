@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem POS Indomaret</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════ -->
+<div id="login-screen" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="brand">INDOMARET</div>
+      <div class="tagline">SISTEM POINT OF SALE</div>
+    </div>
+    <div class="login-divider"></div>
+    <div class="login-title">Pilih Peran &amp; Masuk</div>
+    <div class="role-tabs">
+      <div class="role-tab active" onclick="selectRole('kasir')">🧾 Kasir</div>
+      <div class="role-tab" onclick="selectRole('manager')">📊 Manager</div>
+    </div>
+    <div class="modal-form">
+      <div class="fg">
+        <label>Pilih Gerai</label>
+        <select id="login-gerai">
+          <option>Gerai Jl. Mawar No. 12 – Jember</option>
+          <option>Gerai Jl. Gajah Mada No. 5 – Jember</option>
+          <option>Gerai Jl. Ahmad Yani No. 88 – Jember</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>ID Pengguna</label>
+        <input id="login-user" type="text" placeholder="Contoh: KASIR001 / MGR001" value="KASIR001">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input id="login-pass" type="password" placeholder="••••••••" value="1234">
+      </div>
+    </div>
+    <button class="btn-login" onclick="doLogin()">MASUK KE SISTEM</button>
+    <div class="login-hint">
+      Demo: Kasir → <b>KASIR001 / 1234</b> &nbsp;|&nbsp; Manager → <b>MGR001 / 1234</b>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     KASIR SCREEN
+════════════════════════════════════════════ -->
+<div id="kasir-screen" class="screen">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="brand">INDOMARET</span>
+    <div class="sep"></div>
+    <span class="info" id="k-gerai">Gerai Jl. Mawar No.12</span>
+    <div class="sep"></div>
+    <span class="info">Kasir: <b id="k-user">KASIR001</b></span>
+    <div class="sep"></div>
+    <span class="info">Shift: <b>Pagi 07:00–15:00</b></span>
+    <div class="sep"></div>
+    <span class="info">No. Trx: <b id="k-trxno">TRX-20260614-001</b></span>
+    <div class="spacer"></div>
+    <div class="status-dot"></div>
+    <span class="status-txt">Online</span>
+    <div class="sep"></div>
+    <span class="clock" id="k-clock">--:--:--</span>
+    <div class="sep"></div>
+    <button class="btn-logout" onclick="doLogout()">Keluar</button>
+  </div>
+
+  <!-- BODY -->
+  <div class="kasir-body">
+    <!-- LEFT -->
+    <div class="panel-left">
+      <!-- SCAN BAR -->
+      <div class="scan-bar">
+        <label>📦 Kode Produk</label>
+        <input id="scan-input" class="scan-input" type="text" placeholder="Ketik kode barcode lalu tekan Enter / klik Tambah..." autofocus>
+        <button class="btn-scan" onclick="scanProduct()">+ Tambah</button>
+      </div>
+
+      <!-- ITEM TABLE -->
+      <div class="item-table-wrap" id="item-table-wrap">
+        <div class="empty-cart" id="empty-cart">
+          <div class="icon">🛒</div>
+          <p>Belum ada item.<br>Masukkan kode produk di atas.</p>
+        </div>
+        <table id="item-table" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:30px">No</th>
+              <th>Nama Produk</th>
+              <th style="width:80px">Barcode</th>
+              <th style="width:80px">Qty</th>
+              <th style="width:90px">Harga</th>
+              <th style="width:95px">Subtotal</th>
+              <th style="width:30px"></th>
+            </tr>
+          </thead>
+          <tbody id="item-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- TOTAL BAR -->
+      <div class="total-bar">
+        <div class="total-rows">
+          <div class="total-row"><span>Subtotal (<span id="t-qty">0</span> item)</span><span id="t-sub">Rp 0</span></div>
+          <div class="total-row"><span>Diskon Produk</span><span class="disc-val" id="t-disc">– Rp 0</span></div>
+          <div class="total-row"><span>Diskon Member</span><span class="disc-val" id="t-member-disc">– Rp 0</span></div>
+          <div class="total-row grand"><span>TOTAL BAYAR</span><span class="amount" id="t-total">Rp 0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="panel-right">
+      <!-- MEMBER -->
+      <div class="member-section">
+        <div class="section-label">💳 Member Indomaret Card</div>
+        <div id="member-display">
+          <div class="member-no-card">
+            <p>Belum ada member</p>
+            <div class="member-input-row">
+              <input id="member-input" type="text" placeholder="No. HP / Kartu member">
+              <button onclick="addMember()">Cek</button>
+            </div>
+          </div>
+        </div>
+        <div class="member-add-hint" id="member-hint"></div>
+      </div>
+
+      <!-- PAYMENT METHOD -->
+      <div class="pay-section">
+        <div class="section-label">💰 Metode Pembayaran</div>
+        <div class="pay-methods">
+          <div class="pay-method-btn active" id="pm-tunai" onclick="selectPayMethod('tunai')">
+            <span class="pm-icon">💵</span>Tunai
+          </div>
+          <div class="pay-method-btn" id="pm-debit" onclick="selectPayMethod('debit')">
+            <span class="pm-icon">💳</span>Debit/Kredit
+          </div>
+          <div class="pay-method-btn" id="pm-qris" onclick="selectPayMethod('qris')">
+            <span class="pm-icon">📱</span>QRIS
+          </div>
+          <div class="pay-method-btn" id="pm-ewallet" onclick="selectPayMethod('ewallet')">
+            <span class="pm-icon">🔵</span>E-Wallet
+          </div>
+        </div>
+
+        <div class="pay-detail" id="pay-detail-tunai">
+          <div class="pay-label">Uang diterima:</div>
+          <div class="pay-input-row">
+            <input id="cash-input" type="text" placeholder="Rp 0" oninput="calcChange()" value="">
+          </div>
+          <div class="quick-amounts" id="quick-amounts"></div>
+          <div class="kembalian-row" id="kembalian-row">
+            <span class="label">Kembalian</span>
+            <span class="val" id="kembalian-val">–</span>
+          </div>
+        </div>
+        <div class="pay-detail" id="pay-detail-debit" style="display:none">
+          <div class="edc-display">
+            💳 Mesin EDC Aktif<br>
+            <small style="font-weight:400; color:#666">Jumlah akan otomatis terisi dari POS</small>
+          </div>
+        </div>
+        <div class="pay-detail" id="pay-detail-qris" style="display:none">
+          <div class="qris-display">
+            <div class="qr-box">QR CODE</div>
+            <div style="font-size:11px; color:#555">Scan dengan aplikasi apapun</div>
+            <div style="font-size:13px; font-weight:700; margin-top:4px; color:var(--gray1)" id="qris-amount">Rp 0</div>
+          </div>
+        </div>
+        <div class="pay-detail" id="pay-detail-ewallet" style="display:none">
+          <div class="edc-display" style="background:var(--blue-light); color:var(--blue)">
+            📱 GoPay / OVO / Dana / ShopeePay<br>
+            <small style="font-weight:400">Arahkan QR ke kamera pelanggan</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROCESS -->
+      <div class="process-section">
+        <button class="btn-process" id="btn-process" onclick="processPayment()" disabled>PROSES PEMBAYARAN</button>
+        <button class="btn-hold" onclick="holdTransaction()">⏸ Tahan Transaksi</button>
+        <button class="btn-cancel" onclick="cancelTransaction()">✕ Batalkan Transaksi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span>● Online &nbsp;|&nbsp; Server: 192.168.1.1 &nbsp;|&nbsp; DB: Sinkron</span>
+    <span id="k-trxcount">Transaksi hari ini: 0</span>
+    <span>Terminal: POS-01 &nbsp;|&nbsp; v4.2.1</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MANAGER / BACK OFFICE
+════════════════════════════════════════════ -->
+<div id="manager-screen" class="screen">
+  <div class="mgr-topbar">
+    <span class="brand">INDOMARET</span>
+    <span class="badge">BACK OFFICE</span>
+    <div style="flex:1"></div>
+    <span style="font-size:12px; color:#aaa; margin-right:12px">Manager: <b id="mgr-user" style="color:var(--white)">MGR001</b></span>
+    <button style="background:rgba(255,255,255,.15); border:none; color:var(--white); padding:5px 12px; border-radius:5px; cursor:pointer; font-size:12px" onclick="doLogout()">Keluar</button>
+  </div>
+  <div class="mgr-body">
+    <!-- SIDEBAR -->
+    <div class="mgr-sidebar">
+      <div class="nav-section">Utama</div>
+      <div class="nav-item active" onclick="mgrPage('dashboard')"><span class="ni">📊</span>Dashboard</div>
+      <div class="nav-item" onclick="mgrPage('laporan')"><span class="ni">📋</span>Laporan Penjualan</div>
+      <div class="nav-section">Inventori</div>
+      <div class="nav-item" onclick="mgrPage('produk')"><span class="ni">📦</span>Kelola Produk</div>
+      <div class="nav-item" onclick="mgrPage('stok')"><span class="ni">🏷️</span>Manajemen Stok</div>
+      <div class="nav-item" onclick="mgrPage('penerimaan')"><span class="ni">🚚</span>Penerimaan Barang</div>
+      <div class="nav-section">Pelanggan</div>
+      <div class="nav-item" onclick="mgrPage('member')"><span class="ni">💳</span>Data Member</div>
+      <div class="nav-item" onclick="mgrPage('retur')"><span class="ni">↩️</span>Retur &amp; Komplain</div>
+      <div class="nav-section">Sistem</div>
+      <div class="nav-item" onclick="mgrPage('kasir-mgr')"><span class="ni">🧾</span>Data Kasir</div>
+      <div class="nav-item" onclick="mgrPage('promo')"><span class="ni">🎁</span>Kelola Promosi</div>
+      <div class="nav-section">Operasional</div>
+      <div class="nav-item" onclick="mgrPage('opname')"><span class="ni">📝</span>Stock Opname</div>
+      <div class="nav-item" onclick="mgrPage('auditlog')"><span class="ni">📜</span>Audit Log</div>
+      <div class="nav-section">Backup</div>
+      <div class="nav-item" onclick="backupDatabase()"><span class="ni">💾</span>Backup Data</div>
+      <div class="nav-item" onclick="showRestoreModal()"><span class="ni">⬆️</span>Restore Data</div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="mgr-content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-title">Dashboard Gerai</div>
+        <div class="stat-grid" id="stat-grid"></div>
+        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:14px">
+          <div class="card">
+            <div class="card-header"><h3>Penjualan 7 Hari Terakhir</h3></div>
+            <div class="card-body">
+              <div class="chart-bars" id="chart-bars"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Stok Menipis ⚠️</h3></div>
+            <div class="card-body" style="padding:0">
+              <table class="mgr-table" id="low-stock-table"></table>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:0">
+          <div class="card-header"><h3>Transaksi Terakhir</h3></div>
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="recent-trx-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAPORAN -->
+      <div class="page" id="page-laporan">
+        <div class="page-title">Laporan Penjualan</div>
+        <div class="card">
+          <div class="card-header"><h3>Ringkasan Penjualan Hari Ini</h3>
+            <button class="btn-secondary" onclick="exportLaporan()">⬇ Export</button>
+          </div>
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="laporan-table"></table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Top 10 Produk Terlaris</h3></div>
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="top-produk-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUK -->
+      <div class="page" id="page-produk">
+        <div class="page-title">Kelola Produk</div>
+        <div class="toolbar">
+          <input class="search-input" id="produk-search" type="text" placeholder="🔍 Cari nama / barcode produk..." oninput="filterProduk()">
+          <button class="btn-primary" onclick="openAddProduk()">+ Tambah Produk</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="produk-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOK -->
+      <div class="page" id="page-stok">
+        <div class="page-title">Manajemen Stok</div>
+        <div class="alert-box warning">⚠️ Produk dengan stok di bawah batas minimum ditampilkan merah. Lakukan pemesanan ulang segera.</div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="stok-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PENERIMAAN -->
+      <div class="page" id="page-penerimaan">
+        <div class="page-title">Penerimaan Barang</div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="openPenerimaan()">+ Catat Penerimaan</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="penerimaan-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMBER -->
+      <div class="page" id="page-member">
+        <div class="page-title">Data Member Indomaret Card</div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="member-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RETUR -->
+      <div class="page" id="page-retur">
+        <div class="page-title">Retur &amp; Komplain</div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="openRetur()">+ Catat Retur</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="retur-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- KASIR DATA -->
+      <div class="page" id="page-kasir-mgr">
+        <div class="page-title">Data Kasir</div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="kasir-mgr-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROMO -->
+      <div class="page" id="page-promo">
+        <div class="page-title">Kelola Promosi</div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="openPromo()">+ Tambah Promosi</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="promo-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK OPNAME -->
+      <div class="page" id="page-opname">
+        <div class="page-title">Stock Opname</div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="startStockOpname()">+ Mulai Stock Opname</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Riwayat Stock Opname</h3></div>
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="opname-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT LOG -->
+      <div class="page" id="page-auditlog">
+        <div class="page-title">Audit Log - Tracking Aktivitas Sistem</div>
+        <div class="toolbar">
+          <input class="search-input" id="audit-search" type="text" placeholder="🔍 Cari user, aksi..." oninput="filterAuditLog()">
+          <button class="btn-secondary" onclick="clearAuditLog()">🗑 Clear Log</button>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="mgr-table" id="audit-table"></table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- mgr-content -->
+  </div>
+</div>
+
+<!-- ═══ MODAL: STOCK OPNAME ═══ -->
+<div class="modal-overlay" id="modal-opname">
+  <div class="modal">
+    <div class="modal-title">Mulai Stock Opname <button class="modal-close" onclick="closeModal('modal-opname')">✕</button></div>
+    <div class="modal-form">
+      <div class="alert-box warning">📝 Stock opname akan membandingkan stok sistem dengan stok fisik di lapangan.</div>
+      <div class="fg"><label>Tanggal Opname</label><input id="op-tgl" type="date"></div>
+      <div class="fg"><label>Keterangan</label><input id="op-ket" placeholder="Opname rutin bulanan, dll"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-opname')">Batal</button>
+      <button class="btn-primary" onclick="doStockOpname()">Mulai Opname</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: RESTORE ═══ -->
+<div class="modal-overlay" id="modal-restore">
+  <div class="modal">
+    <div class="modal-title">Restore Database <button class="modal-close" onclick="closeModal('modal-restore')">✕</button></div>
+    <div class="modal-form">
+      <div class="alert-box error">⚠️ Restore akan mengganti SEMUA data saat ini. Pastikan Anda sudah backup terlebih dahulu!</div>
+      <div class="fg"><label>Upload File Backup (.json)</label>
+        <input id="restore-file" type="file" accept=".json" style="padding:10px; border:1.5px dashed var(--gray5); border-radius:var(--radius); width:100%; cursor:pointer;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-restore')">Batal</button>
+      <button class="btn-primary" onclick="restoreDatabase()">Restore Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: STRUK ═══ -->
+<div class="modal-overlay struk-modal" id="modal-struk">
+  <div class="modal" style="width:320px">
+    <div class="modal-title">🧾 Struk Transaksi <button class="modal-close" onclick="closeModal('modal-struk')">✕</button></div>
+    <div class="struk" id="struk-content"></div>
+    <button class="btn-print" onclick="printStruk()">🖨 Cetak Struk</button>
+    <button class="btn-cancel" style="width:100%; margin-top:6px; padding:9px" onclick="closeModal('modal-struk'); newTransaction()">Transaksi Berikutnya</button>
+  </div>
+</div>
+
+<!-- ═══ MODAL: TAMBAH PRODUK ═══ -->
+<div class="modal-overlay" id="modal-produk">
+  <div class="modal">
+    <div class="modal-title" id="modal-produk-title">Tambah Produk Baru <button class="modal-close" onclick="closeModal('modal-produk')">✕</button></div>
+    <div class="modal-form">
+      <input type="hidden" id="edit-produk-idx" value="-1">
+      <div class="form-grid-2">
+        <div class="fg"><label>Kode Barcode</label><input id="fp-barcode" placeholder="8999999XXXXXX"></div>
+        <div class="fg"><label>Kategori</label>
+          <select id="fp-cat">
+            <option>Minuman</option><option>Makanan Ringan</option><option>Mie Instan</option>
+            <option>Susu & Produk Susu</option><option>Kebutuhan Rumah</option>
+            <option>Roti & Kue</option><option>Rokok</option><option>Lainnya</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Nama Produk</label><input id="fp-name" placeholder="Nama lengkap produk"></div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Harga Beli (HPP)</label><input id="fp-hpp" type="number" placeholder="0"></div>
+        <div class="fg"><label>Harga Jual</label><input id="fp-price" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Stok Awal</label><input id="fp-stok" type="number" placeholder="0"></div>
+        <div class="fg"><label>Stok Minimum</label><input id="fp-min" type="number" placeholder="10"></div>
+      </div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Diskon (%)</label><input id="fp-disc" type="number" placeholder="0" min="0" max="100"></div>
+        <div class="fg"><label>Supplier</label>
+          <select id="fp-supplier">
+            <option>PT Indomarco Prismatama</option><option>PT Nestle Indonesia</option>
+            <option>PT Indofood CBP</option><option>PT Unilever Indonesia</option><option>Lainnya</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-produk')">Batal</button>
+      <button class="btn-primary" onclick="saveProduk()">Simpan Produk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: PENERIMAAN ═══ -->
+<div class="modal-overlay" id="modal-penerimaan">
+  <div class="modal">
+    <div class="modal-title">Catat Penerimaan Barang <button class="modal-close" onclick="closeModal('modal-penerimaan')">✕</button></div>
+    <div class="modal-form">
+      <div class="form-grid-2">
+        <div class="fg"><label>No. Surat Jalan</label><input id="pn-sj" placeholder="SJ-2026-XXXX"></div>
+        <div class="fg"><label>Tanggal Terima</label><input id="pn-tgl" type="date"></div>
+      </div>
+      <div class="fg"><label>Supplier</label>
+        <select id="pn-sup"><option>PT Indomarco Prismatama</option><option>PT Nestle Indonesia</option><option>PT Indofood CBP</option><option>PT Unilever Indonesia</option></select>
+      </div>
+      <div class="fg"><label>Produk</label>
+        <select id="pn-produk"></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Jumlah Diterima</label><input id="pn-qty" type="number" placeholder="0"></div>
+        <div class="fg"><label>Harga Per Unit</label><input id="pn-hpp" type="number" placeholder="0"></div>
+      </div>
+      <div class="fg"><label>Kondisi</label>
+        <select id="pn-kondisi"><option>Baik</option><option>Ada Kerusakan</option><option>Kadaluarsa Dekat</option></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-penerimaan')">Batal</button>
+      <button class="btn-primary" onclick="savePenerimaan()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: RETUR ═══ -->
+<div class="modal-overlay" id="modal-retur">
+  <div class="modal">
+    <div class="modal-title">Catat Retur <button class="modal-close" onclick="closeModal('modal-retur')">✕</button></div>
+    <div class="modal-form">
+      <div class="fg"><label>No. Transaksi Asal</label><input id="rt-trx" placeholder="TRX-20260614-XXX"></div>
+      <div class="fg"><label>Produk</label><select id="rt-produk"></select></div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Jumlah Retur</label><input id="rt-qty" type="number" placeholder="0" min="1"></div>
+        <div class="fg"><label>Alasan</label>
+          <select id="rt-alasan"><option>Produk Rusak</option><option>Produk Kadaluarsa</option><option>Salah Produk</option><option>Tidak Sesuai Pesanan</option></select>
+        </div>
+      </div>
+      <div class="fg"><label>Keterangan</label><input id="rt-ket" placeholder="Keterangan tambahan..."></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-retur')">Batal</button>
+      <button class="btn-primary" onclick="saveRetur()">Simpan Retur</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: PROMO ═══ -->
+<div class="modal-overlay" id="modal-promo">
+  <div class="modal">
+    <div class="modal-title">Tambah Promosi <button class="modal-close" onclick="closeModal('modal-promo')">✕</button></div>
+    <div class="modal-form">
+      <div class="fg"><label>Nama Promosi</label><input id="pr-nama" placeholder="Contoh: Diskon Lebaran 20%"></div>
+      <div class="fg"><label>Produk</label><select id="pr-produk"></select></div>
+      <div class="form-grid-2">
+        <div class="fg"><label>Diskon (%)</label><input id="pr-disc" type="number" min="1" max="100" placeholder="0"></div>
+        <div class="fg"><label>Berlaku Hingga</label><input id="pr-tgl" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal('modal-promo')">Batal</button>
+      <button class="btn-primary" onclick="savePromo()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- Load DB -->
+<script src="db.js"></script>
+<!-- Load App -->
+<script src="app.js"></script>
+
+</body>
+</html>
